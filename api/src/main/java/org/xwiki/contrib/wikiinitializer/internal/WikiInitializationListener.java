@@ -92,7 +92,7 @@ public class WikiInitializationListener extends AbstractEventListener
      */
     public WikiInitializationListener()
     {
-        super(LISTENER_NAME, new ApplicationStartedEvent());
+        super(LISTENER_NAME, new ApplicationStartedEvent(), new WikiReadyEvent());
     }
 
     @Override
