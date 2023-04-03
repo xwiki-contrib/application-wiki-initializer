@@ -1,0 +1,2 @@
+org.xwiki.contrib.wikiinitializer.internal.DefaultWikiInitializerConfiguration
+org.xwiki.contrib.wikiinitializer.internal.WikiInitializationListener
