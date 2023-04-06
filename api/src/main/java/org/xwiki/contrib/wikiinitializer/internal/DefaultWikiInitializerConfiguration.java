@@ -48,7 +48,7 @@ import org.xwiki.wiki.descriptor.WikiDescriptor;
 @Singleton
 public class DefaultWikiInitializerConfiguration implements WikiInitializerConfiguration
 {
-    private static final String CONFIGURATION_PREFIX = "wikiinitializer.";
+    private static final String CONFIGURATION_PREFIX = "wikiInitializer.";
 
     private static final String INITIAL_REQUEST_PREFIX = CONFIGURATION_PREFIX + "initialRequest.";
 
@@ -86,19 +86,19 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     @Override
     public boolean initializeMainWiki()
     {
-        return configuration.getProperty(KEY_INITIALIZE_MAIN_WIKI);
+        return configuration.getProperty(KEY_INITIALIZE_MAIN_WIKI, false);
     }
 
     @Override
     public boolean initializeAllSubWikis()
     {
-        return configuration.getProperty(KEY_INITIALIZE_SUB_WIKIS);
+        return configuration.getProperty(KEY_INITIALIZE_SUB_WIKIS, false);
     }
 
     @Override
     public boolean startDistributionWizardOnInitialization()
     {
-        return configuration.getProperty(KEY_START_DISTRIBUTION_WIZARD_ON_INIT);
+        return configuration.getProperty(KEY_START_DISTRIBUTION_WIZARD_ON_INIT, false);
     }
 
     @Override
