@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 import javax.servlet.http.Cookie;
 
 import org.slf4j.Logger;
+import org.xwiki.bridge.event.ActionExecutingEvent;
 import org.xwiki.bridge.event.WikiReadyEvent;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.container.servlet.ServletContainerInitializer;
@@ -36,6 +37,7 @@ import org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration;
 import org.xwiki.environment.Environment;
 import org.xwiki.environment.internal.ServletEnvironment;
 import org.xwiki.observation.AbstractEventListener;
+import org.xwiki.observation.ObservationManager;
 import org.xwiki.observation.event.ApplicationStartedEvent;
 import org.xwiki.observation.event.Event;
 import org.xwiki.wiki.descriptor.WikiDescriptor;
@@ -86,6 +88,9 @@ public class WikiInitializationListener extends AbstractEventListener
 
     @Inject
     private WikiDescriptorManager wikiDescriptorManager;
+
+    @Inject
+    private ObservationManager observationManager;
 
     /**
      * Create a new {@link WikiInitializationListener}.
@@ -143,7 +148,16 @@ public class WikiInitializationListener extends AbstractEventListener
             containerInitializer.initializeResponse(context.getResponse());
             containerInitializer.initializeSession(context.getRequest().getHttpServletRequest());
 
-            XWiki.getXWiki(false, context);
+            XWiki xwiki = XWiki.getXWiki(configuration.startDistributionWizardOnInitialization(), context);
+
+            if (configuration.startDistributionWizardOnInitialization()) {
+                try {
+                    observationManager.notify(new ActionExecutingEvent(ACTION_DISTRIBUTION),
+                        xwiki.getDocument(xwiki.getDefaultPage(context), context), context);
+                } catch (Exception e) {
+                    logger.error("Failed to auto-start XWiki Distribution", e);
+                }
+            }
         } catch (Exception e) {
             logger.error("Failed to auto-start XWiki", e);
         }
