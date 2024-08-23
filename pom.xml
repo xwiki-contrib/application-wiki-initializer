@@ -36,6 +36,7 @@
   <properties>
     <xwiki.release.jira.skip>false</xwiki.release.jira.skip>
     <xwiki.issueManagement.jira.id>WKINIT</xwiki.issueManagement.jira.id>
+    <xwiki.spoon.skip>true</xwiki.spoon.skip>
   </properties>
   <scm>
     <connection>scm:git:git://github.com/xwiki-contrib/application-wiki-initializer.git</connection>
