@@ -29,6 +29,9 @@
   </parent>
   <artifactId>application-wiki-initializer-api</artifactId>
   <name>Application - Wiki Initializer - API</name>
+  <properties>
+    <checkstyle.suppressions.location>${basedir}/src/main/checkstyle/checkstyle-suppressions.xml</checkstyle.suppressions.location>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.xwiki.commons</groupId>

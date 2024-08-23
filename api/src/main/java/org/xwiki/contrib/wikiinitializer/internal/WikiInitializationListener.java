@@ -19,7 +19,9 @@
  */
 package org.xwiki.contrib.wikiinitializer.internal;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -32,11 +34,14 @@ import org.slf4j.Logger;
 import org.xwiki.bridge.event.ActionExecutingEvent;
 import org.xwiki.bridge.event.WikiReadyEvent;
 import org.xwiki.component.annotation.Component;
+import org.xwiki.component.manager.ComponentLookupException;
+import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.container.servlet.ServletContainerInitializer;
 import org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration;
 import org.xwiki.environment.Environment;
 import org.xwiki.environment.internal.ServletEnvironment;
 import org.xwiki.observation.AbstractEventListener;
+import org.xwiki.observation.EventListener;
 import org.xwiki.observation.ObservationManager;
 import org.xwiki.observation.event.ApplicationStartedEvent;
 import org.xwiki.observation.event.Event;
@@ -74,6 +79,11 @@ public class WikiInitializationListener extends AbstractEventListener
 
     private static final String XWIKI = "xwiki";
 
+    private static final List<String> KNOWN_QUERY_REGISTRATION_HANDLERS = Arrays.asList(
+        "queryRegistrationHandler/nestedPages",
+        "queryRegistrationHandler/nestedSpaces"
+    );
+
     @Inject
     private Environment environment;
 
@@ -92,6 +102,9 @@ public class WikiInitializationListener extends AbstractEventListener
     @Inject
     private ObservationManager observationManager;
 
+    @Inject
+    private ComponentManager componentManager;
+
     /**
      * Create a new {@link WikiInitializationListener}.
      */
@@ -104,6 +117,8 @@ public class WikiInitializationListener extends AbstractEventListener
     public void onEvent(Event event, Object source, Object data)
     {
         if (event instanceof ApplicationStartedEvent && configuration.initializeMainWiki()) {
+            initializeQueryRegistrationHandlers(event, source, data);
+
             initializeWiki(null);
         } else if (event instanceof WikiReadyEvent && XWIKI.equals(source)) {
             try {
@@ -160,6 +175,28 @@ public class WikiInitializationListener extends AbstractEventListener
             }
         } catch (Exception e) {
             logger.error("Failed to auto-start XWiki", e);
+        }
+    }
+
+    /**
+     * Query registration handlers are used so that the Hibernate session can then use named queries for
+     * making complex queries against the database.
+     *
+     * Today, query registration handlers are also listening to the {@link ApplicationStartedEvent}. It is however
+     * very important that they get called before this listener, as this listener will lead to the start of the wiki,
+     * and thus the creation of the hibernate session.
+     */
+    private void initializeQueryRegistrationHandlers(Event event, Object source, Object data)
+    {
+        for (String handler : KNOWN_QUERY_REGISTRATION_HANDLERS) {
+            if (componentManager.hasComponent(EventListener.class, handler)) {
+                try {
+                    ((EventListener) componentManager.getInstance(EventListener.class, handler))
+                        .onEvent(event, source, data);
+                } catch (ComponentLookupException e) {
+                    logger.error("Failed to lookup the hibernate query registration handler", e);
+                }
+            }
         }
     }
 }
