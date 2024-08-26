@@ -79,9 +79,10 @@ public class WikiInitializationListener extends AbstractEventListener
 
     private static final String XWIKI = "xwiki";
 
-    private static final List<String> KNOWN_QUERY_REGISTRATION_HANDLERS = Arrays.asList(
+    private static final List<String> KNOWN_DEPENDENT_EVENT_LISTENERS = Arrays.asList(
         "queryRegistrationHandler/nestedPages",
-        "queryRegistrationHandler/nestedSpaces"
+        "queryRegistrationHandler/nestedSpaces",
+        "EventStreamStoreInitializer"
     );
 
     @Inject
@@ -117,7 +118,7 @@ public class WikiInitializationListener extends AbstractEventListener
     public void onEvent(Event event, Object source, Object data)
     {
         if (event instanceof ApplicationStartedEvent && configuration.initializeMainWiki()) {
-            initializeQueryRegistrationHandlers(event, source, data);
+            initializeKnownDependentEventListeners(event, source, data);
 
             initializeWiki(null);
         } else if (event instanceof WikiReadyEvent && XWIKI.equals(source)) {
@@ -179,22 +180,26 @@ public class WikiInitializationListener extends AbstractEventListener
     }
 
     /**
-     * Query registration handlers are used so that the Hibernate session can then use named queries for
-     * making complex queries against the database.
+     * Before initializing XWiki itself, there are a couple listeners (also listening to {@link ApplicationStartedEvent}
+     * that we need to initialize. This is to make sure that XWiki runs smoothly afterward.
      *
-     * Today, query registration handlers are also listening to the {@link ApplicationStartedEvent}. It is however
-     * very important that they get called before this listener, as this listener will lead to the start of the wiki,
-     * and thus the creation of the hibernate session.
+     * Query registration handlers are used so that the Hibernate session can then use named queries for
+     * making complex queries against the database. Today, query registration handlers are also listening to
+     * the {@link ApplicationStartedEvent}. It is however very important that they get called before this listener,
+     * as this listener will lead to the start of the wiki, and thus the creation of the hibernate session.
+     *
+     * The same applies to the legacy event stream.
      */
-    private void initializeQueryRegistrationHandlers(Event event, Object source, Object data)
+    private void initializeKnownDependentEventListeners(Event event, Object source, Object data)
     {
-        for (String handler : KNOWN_QUERY_REGISTRATION_HANDLERS) {
-            if (componentManager.hasComponent(EventListener.class, handler)) {
+        for (String listener : KNOWN_DEPENDENT_EVENT_LISTENERS) {
+            if (componentManager.hasComponent(EventListener.class, listener)) {
                 try {
-                    ((EventListener) componentManager.getInstance(EventListener.class, handler))
+                    ((EventListener) componentManager.getInstance(EventListener.class, listener))
                         .onEvent(event, source, data);
                 } catch (ComponentLookupException e) {
-                    logger.error("Failed to lookup the hibernate query registration handler", e);
+                    logger.error(String.format("Failed to initialize listener [%s] before initializing the main wiki",
+                        listener), e);
                 }
             }
         }
