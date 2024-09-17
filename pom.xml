@@ -29,7 +29,7 @@
   </parent>
   <groupId>org.xwiki.contrib.wikiinitializer</groupId>
   <artifactId>application-wiki-initializer</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1-SNAPSHOT</version>
   <name>Application - Wiki Initializer</name>
   <packaging>pom</packaging>
   <description>An extension that allows to initialize the main wiki and sub-wikis</description>
@@ -42,7 +42,7 @@
     <connection>scm:git:git://github.com/xwiki-contrib/application-wiki-initializer.git</connection>
     <developerConnection>scm:git:git@github.com:xwiki-contrib/application-wiki-initializer.git</developerConnection>
     <url>https://github.com/xwiki-contrib/application-wiki-initializer/tree/master</url>
-    <tag>application-wiki-initializer-1.2.0</tag>
+    <tag>HEAD</tag>
   </scm>
   <developers>
     <developer>
