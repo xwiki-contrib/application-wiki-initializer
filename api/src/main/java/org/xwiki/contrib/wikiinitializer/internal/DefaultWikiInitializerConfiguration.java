@@ -54,6 +54,9 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
 
     private static final String KEY_INITIALIZE_MAIN_WIKI = CONFIGURATION_PREFIX + "initializeMainWiki";
 
+    private static final String KEY_MAIN_WIKI_INITIALIZATION_DELAY =
+        CONFIGURATION_PREFIX + "mainWikiInitializationDelay";
+
     private static final String KEY_INITIALIZE_SUB_WIKIS = CONFIGURATION_PREFIX + "initializeSubWikis";
 
     private static final String KEY_START_DISTRIBUTION_WIZARD_ON_INIT = CONFIGURATION_PREFIX
@@ -180,5 +183,11 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     {
         List<String> wikiIDs = configuration.getProperty(KEY_INITIALIZABLE_SUB_WIKIS, Collections.emptyList());
         return wikiIDs.stream().map(wikiID -> new WikiDescriptor(wikiID, wikiID)).collect(Collectors.toSet());
+    }
+
+    @Override
+    public long getMainWikiInitializationDelay()
+    {
+        return configuration.getProperty(KEY_MAIN_WIKI_INITIALIZATION_DELAY, 5000);
     }
 }

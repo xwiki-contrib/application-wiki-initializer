@@ -1,2 +1,4 @@
+org.xwiki.contrib.wikiinitializer.internal.DefaultWikiInitializationManager
 org.xwiki.contrib.wikiinitializer.internal.DefaultWikiInitializerConfiguration
+org.xwiki.contrib.wikiinitializer.internal.MainWikiInitializationJob
 org.xwiki.contrib.wikiinitializer.internal.WikiInitializationListener

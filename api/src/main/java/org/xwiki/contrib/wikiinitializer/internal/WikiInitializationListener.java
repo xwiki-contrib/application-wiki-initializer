@@ -19,30 +19,22 @@
  */
 package org.xwiki.contrib.wikiinitializer.internal;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.servlet.http.Cookie;
 
 import org.slf4j.Logger;
-import org.xwiki.bridge.event.ActionExecutingEvent;
 import org.xwiki.bridge.event.WikiReadyEvent;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.manager.ComponentLookupException;
-import org.xwiki.component.manager.ComponentManager;
-import org.xwiki.container.servlet.ServletContainerInitializer;
+import org.xwiki.contrib.wikiinitializer.WikiInitializationException;
+import org.xwiki.contrib.wikiinitializer.WikiInitializationManager;
 import org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration;
-import org.xwiki.environment.Environment;
-import org.xwiki.environment.internal.ServletEnvironment;
+import org.xwiki.job.DefaultRequest;
+import org.xwiki.job.JobException;
+import org.xwiki.job.JobExecutor;
 import org.xwiki.observation.AbstractEventListener;
-import org.xwiki.observation.EventListener;
-import org.xwiki.observation.ObservationManager;
 import org.xwiki.observation.event.ApplicationStartedEvent;
 import org.xwiki.observation.event.Event;
 import org.xwiki.wiki.descriptor.WikiDescriptor;
@@ -50,12 +42,6 @@ import org.xwiki.wiki.descriptor.WikiDescriptorManager;
 import org.xwiki.wiki.manager.WikiManagerException;
 
 import com.xpn.xwiki.XWiki;
-import com.xpn.xwiki.XWikiContext;
-import com.xpn.xwiki.web.Utils;
-import com.xpn.xwiki.web.XWikiEngineContext;
-import com.xpn.xwiki.web.XWikiServletContext;
-import com.xpn.xwiki.web.XWikiServletRequestStub;
-import com.xpn.xwiki.web.XWikiServletResponseStub;
 
 /**
  * Listener that will automatically start the wiki initialization job.
@@ -73,26 +59,11 @@ public class WikiInitializationListener extends AbstractEventListener
      */
     public static final String LISTENER_NAME = "WikiInitializationListener";
 
-    private static final String ACTION_VIEW = "view";
-
-    private static final String ACTION_DISTRIBUTION = "distribution";
-
-    private static final String XWIKI = "xwiki";
-
-    private static final List<String> KNOWN_DEPENDENT_EVENT_LISTENERS = Arrays.asList(
-        "queryRegistrationHandler/nestedPages",
-        "queryRegistrationHandler/nestedSpaces",
-        "EventStreamStoreInitializer"
-    );
-
-    @Inject
-    private Environment environment;
-
     @Inject
     private Logger logger;
 
     @Inject
-    private ServletContainerInitializer containerInitializer;
+    private JobExecutor jobExecutor;
 
     @Inject
     private WikiInitializerConfiguration configuration;
@@ -101,10 +72,7 @@ public class WikiInitializationListener extends AbstractEventListener
     private WikiDescriptorManager wikiDescriptorManager;
 
     @Inject
-    private ObservationManager observationManager;
-
-    @Inject
-    private ComponentManager componentManager;
+    private WikiInitializationManager wikiInitializationManager;
 
     /**
      * Create a new {@link WikiInitializationListener}.
@@ -118,89 +86,22 @@ public class WikiInitializationListener extends AbstractEventListener
     public void onEvent(Event event, Object source, Object data)
     {
         if (event instanceof ApplicationStartedEvent && configuration.initializeMainWiki()) {
-            initializeKnownDependentEventListeners(event, source, data);
-
-            initializeWiki(null);
-        } else if (event instanceof WikiReadyEvent && XWIKI.equals(source)) {
+            try {
+                jobExecutor.execute(MainWikiInitializationJob.JOB_TYPE, new DefaultRequest());
+            } catch (JobException e) {
+                logger.error("Failed to initialize main wiki", e);
+            }
+        } else if (event instanceof WikiReadyEvent && XWiki.DEFAULT_MAIN_WIKI.equals(source)) {
             try {
                 Collection<WikiDescriptor> wikisToInitialize = (configuration.initializeAllSubWikis())
                     ? wikiDescriptorManager.getAll()
                     : configuration.getInitializableWikis();
 
                 for (WikiDescriptor descriptor : wikisToInitialize) {
-                    initializeWiki(descriptor);
+                    wikiInitializationManager.initialize(descriptor);
                 }
-            } catch (WikiManagerException e) {
+            } catch (WikiManagerException | WikiInitializationException e) {
                 logger.error("Failed to initialize sub-wikis", e);
-            }
-        }
-    }
-
-    private void initializeWiki(WikiDescriptor descriptor)
-    {
-        String wikiId = (descriptor != null) ? descriptor.getId() : XWIKI;
-        logger.info("Initializing wiki [{}] ...", wikiId);
-
-        try {
-            ServletEnvironment servletEnvironment = (ServletEnvironment) environment;
-            XWikiEngineContext engineContext = new XWikiServletContext(servletEnvironment.getServletContext());
-
-            XWikiServletRequestStub.Builder requestBuilder = new XWikiServletRequestStub.Builder();
-            requestBuilder.setRequestURL(configuration.getInitialRequestURL(descriptor));
-            requestBuilder.setContextPath(configuration.getInitialRequestContextPath(descriptor));
-            requestBuilder.setRequestParameters(
-                configuration.getInitialRequestParameters(descriptor).entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toArray(new String[0]))));
-            requestBuilder.setCookies(configuration.getInitialRequestCookies(descriptor).toArray(new Cookie[0]));
-            requestBuilder.setHeaders(configuration.getInitialRequestHeaders(descriptor));
-            requestBuilder.setRemoteAddr(configuration.getInitialRequestRemoteAddr(descriptor));
-
-            XWikiContext context = Utils.prepareContext(
-                configuration.startDistributionWizardOnInitialization() ? ACTION_DISTRIBUTION : ACTION_VIEW,
-                requestBuilder.build(), new XWikiServletResponseStub(), engineContext);
-            context.setMode(XWikiContext.MODE_SERVLET);
-
-            containerInitializer.initializeRequest(context.getRequest().getHttpServletRequest(), context);
-            containerInitializer.initializeResponse(context.getResponse());
-            containerInitializer.initializeSession(context.getRequest().getHttpServletRequest());
-
-            XWiki xwiki = XWiki.getXWiki(configuration.startDistributionWizardOnInitialization(), context);
-
-            if (configuration.startDistributionWizardOnInitialization()) {
-                try {
-                    observationManager.notify(new ActionExecutingEvent(ACTION_DISTRIBUTION),
-                        xwiki.getDocument(xwiki.getDefaultPage(context), context), context);
-                } catch (Exception e) {
-                    logger.error("Failed to auto-start XWiki Distribution", e);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Failed to auto-start XWiki", e);
-        }
-    }
-
-    /**
-     * Before initializing XWiki itself, there are a couple listeners (also listening to {@link ApplicationStartedEvent}
-     * that we need to initialize. This is to make sure that XWiki runs smoothly afterward.
-     *
-     * Query registration handlers are used so that the Hibernate session can then use named queries for
-     * making complex queries against the database. Today, query registration handlers are also listening to
-     * the {@link ApplicationStartedEvent}. It is however very important that they get called before this listener,
-     * as this listener will lead to the start of the wiki, and thus the creation of the hibernate session.
-     *
-     * The same applies to the legacy event stream.
-     */
-    private void initializeKnownDependentEventListeners(Event event, Object source, Object data)
-    {
-        for (String listener : KNOWN_DEPENDENT_EVENT_LISTENERS) {
-            if (componentManager.hasComponent(EventListener.class, listener)) {
-                try {
-                    ((EventListener) componentManager.getInstance(EventListener.class, listener))
-                        .onEvent(event, source, data);
-                } catch (ComponentLookupException e) {
-                    logger.error(String.format("Failed to initialize listener [%s] before initializing the main wiki",
-                        listener), e);
-                }
             }
         }
     }
