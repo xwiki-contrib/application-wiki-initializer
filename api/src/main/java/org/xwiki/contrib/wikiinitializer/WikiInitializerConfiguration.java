@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.servlet.http.Cookie;
 
 import org.xwiki.component.annotation.Role;
+import org.xwiki.stability.Unstable;
 import org.xwiki.wiki.descriptor.WikiDescriptor;
 
 /**
@@ -36,6 +37,7 @@ import org.xwiki.wiki.descriptor.WikiDescriptor;
  * @since 1.0
  */
 @Role
+@Unstable
 public interface WikiInitializerConfiguration
 {
     /**
@@ -94,12 +96,4 @@ public interface WikiInitializerConfiguration
      * {@link #initializeAllSubWikis()} is false
      */
     Set<WikiDescriptor> getInitializableWikis();
-
-    /**
-     * @return the delay the wiki initializer should wait before initializing the main wiki.
-     */
-    default long getMainWikiInitializationDelay()
-    {
-        return 5000;
-    }
 }

@@ -21,6 +21,7 @@ package org.xwiki.contrib.wikiinitializer.internal;
 
 import java.util.Collection;
 
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -31,9 +32,6 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.contrib.wikiinitializer.WikiInitializationException;
 import org.xwiki.contrib.wikiinitializer.WikiInitializationManager;
 import org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration;
-import org.xwiki.job.DefaultRequest;
-import org.xwiki.job.JobException;
-import org.xwiki.job.JobExecutor;
 import org.xwiki.observation.AbstractEventListener;
 import org.xwiki.observation.event.ApplicationStartedEvent;
 import org.xwiki.observation.event.Event;
@@ -52,6 +50,7 @@ import com.xpn.xwiki.XWiki;
 @Component
 @Singleton
 @Named(WikiInitializationListener.LISTENER_NAME)
+@Priority(Integer.MAX_VALUE)
 public class WikiInitializationListener extends AbstractEventListener
 {
     /**
@@ -61,9 +60,6 @@ public class WikiInitializationListener extends AbstractEventListener
 
     @Inject
     private Logger logger;
-
-    @Inject
-    private JobExecutor jobExecutor;
 
     @Inject
     private WikiInitializerConfiguration configuration;
@@ -87,8 +83,8 @@ public class WikiInitializationListener extends AbstractEventListener
     {
         if (event instanceof ApplicationStartedEvent && configuration.initializeMainWiki()) {
             try {
-                jobExecutor.execute(MainWikiInitializationJob.JOB_TYPE, new DefaultRequest());
-            } catch (JobException e) {
+                wikiInitializationManager.initialize(null);
+            } catch (WikiInitializationException e) {
                 logger.error("Failed to initialize main wiki", e);
             }
         } else if (event instanceof WikiReadyEvent && XWiki.DEFAULT_MAIN_WIKI.equals(source)) {
