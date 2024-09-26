@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.xwiki.contrib.wikiinitializer</groupId>
     <artifactId>application-wiki-initializer</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.1</version>
   </parent>
   <artifactId>application-wiki-initializer-api</artifactId>
   <name>Application - Wiki Initializer - API</name>
