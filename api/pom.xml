@@ -29,6 +29,9 @@
   </parent>
   <artifactId>application-wiki-initializer-api</artifactId>
   <name>Application - Wiki Initializer - API</name>
+  <properties>
+    <xwiki.revapi.skip>true</xwiki.revapi.skip>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.xwiki.commons</groupId>
@@ -50,26 +53,4 @@
       <artifactId>javax.servlet-api</artifactId>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.revapi</groupId>
-        <artifactId>revapi-maven-plugin</artifactId>
-        <configuration>
-          <analysisConfiguration>
-            <revapi.differences>
-              <differences>
-                <item>
-                  <ignore>true</ignore>
-                  <code>java.method.removed</code>
-                  <old>method long org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration::getMainWikiInitializationDelay()</old>
-                  <justification>Removed short-lived property which was not needed in the end. See WKINIT-6</justification>
-                </item>
-              </differences>
-            </revapi.differences>
-          </analysisConfiguration>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

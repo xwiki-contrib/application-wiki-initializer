@@ -27,7 +27,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.slf4j.Logger;
-import org.xwiki.bridge.event.WikiReadyEvent;
+import org.xwiki.bridge.event.ApplicationReadyEvent;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.contrib.wikiinitializer.WikiInitializationException;
 import org.xwiki.contrib.wikiinitializer.WikiInitializationManager;
@@ -75,7 +75,7 @@ public class WikiInitializationListener extends AbstractEventListener
      */
     public WikiInitializationListener()
     {
-        super(LISTENER_NAME, new ApplicationStartedEvent(), new WikiReadyEvent());
+        super(LISTENER_NAME, new ApplicationStartedEvent(), new ApplicationReadyEvent());
     }
 
     @Override
@@ -87,14 +87,16 @@ public class WikiInitializationListener extends AbstractEventListener
             } catch (WikiInitializationException e) {
                 logger.error("Failed to initialize main wiki", e);
             }
-        } else if (event instanceof WikiReadyEvent && XWiki.DEFAULT_MAIN_WIKI.equals(source)) {
+        } else if (event instanceof ApplicationReadyEvent) {
             try {
                 Collection<WikiDescriptor> wikisToInitialize = (configuration.initializeAllSubWikis())
                     ? wikiDescriptorManager.getAll()
                     : configuration.getInitializableWikis();
 
                 for (WikiDescriptor descriptor : wikisToInitialize) {
-                    wikiInitializationManager.initialize(descriptor);
+                    if (!XWiki.DEFAULT_MAIN_WIKI.equals(descriptor.getId())) {
+                        wikiInitializationManager.initialize(descriptor);
+                    }
                 }
             } catch (WikiManagerException | WikiInitializationException e) {
                 logger.error("Failed to initialize sub-wikis", e);

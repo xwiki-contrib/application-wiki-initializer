@@ -56,40 +56,34 @@ public interface WikiInitializerConfiguration
     boolean startDistributionWizardOnInitialization();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the initialization URL to use
      */
-    URL getInitialRequestURL(WikiDescriptor descriptor);
+    URL getInitialRequestURL();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the context path to provide in the initialization request
      */
-    String getInitialRequestContextPath(WikiDescriptor descriptor);
+    String getInitialRequestContextPath();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the initialization request parameters
      */
-    Map<String, List<String>> getInitialRequestParameters(WikiDescriptor descriptor);
+    Map<String, List<String>> getInitialRequestParameters();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the initialization request headers
      */
-    Map<String, List<String>> getInitialRequestHeaders(WikiDescriptor descriptor);
+    Map<String, List<String>> getInitialRequestHeaders();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the initialization cookies
      */
-    List<Cookie> getInitialRequestCookies(WikiDescriptor descriptor);
+    List<Cookie> getInitialRequestCookies();
 
     /**
-     * @param descriptor the wiki to initialize. If the descriptor is null, the main wiki descriptor will be used.
      * @return the initialization remote address
      */
-    String getInitialRequestRemoteAddr(WikiDescriptor descriptor);
+    String getInitialRequestRemoteAddr();
 
     /**
      * @return the list of every wiki that should be automatically initialized (used when

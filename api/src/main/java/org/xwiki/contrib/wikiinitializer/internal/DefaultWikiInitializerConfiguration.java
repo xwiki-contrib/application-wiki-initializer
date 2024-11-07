@@ -33,6 +33,8 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.servlet.http.Cookie;
 
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.configuration.ConfigurationSource;
 import org.xwiki.contrib.wikiinitializer.WikiInitializerConfiguration;
@@ -48,14 +50,27 @@ import org.xwiki.wiki.descriptor.WikiDescriptor;
 @Singleton
 public class DefaultWikiInitializerConfiguration implements WikiInitializerConfiguration
 {
+    private static final String CONTEXT_PATH = "contextPath";
+
+    private static final String COOKIES = "cookies";
+
+    private static final String DOT = ".";
+
+    private static final String HEADERS = "headers";
+
+    private static final String PARAMETERS = "parameters";
+
+    private static final String REMOTE_ADDR = "remoteAddress";
+
+    private static final String URL = "url";
+
+    private static final String XWIKI = "xwiki";
+
     private static final String CONFIGURATION_PREFIX = "wikiInitializer.";
 
     private static final String INITIAL_REQUEST_PREFIX = CONFIGURATION_PREFIX + "initialRequest.";
 
     private static final String KEY_INITIALIZE_MAIN_WIKI = CONFIGURATION_PREFIX + "initializeMainWiki";
-
-    private static final String KEY_MAIN_WIKI_INITIALIZATION_DELAY =
-        CONFIGURATION_PREFIX + "mainWikiInitializationDelay";
 
     private static final String KEY_INITIALIZE_SUB_WIKIS = CONFIGURATION_PREFIX + "initializeSubWikis";
 
@@ -64,27 +79,42 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
 
     private static final String KEY_INITIALIZABLE_SUB_WIKIS = CONFIGURATION_PREFIX + "initializableSubWikis";
 
-    private static final String INITIAL_REQUEST_URL = ".url";
+    private static final String INITIAL_REQUEST_URL = INITIAL_REQUEST_PREFIX + URL;
 
-    private static final String INITIAL_REQUEST_CONTEXT_PATH = ".contextPath";
+    private static final String LEGACY_INITIAL_REQUEST_URL = INITIAL_REQUEST_PREFIX + XWIKI + DOT + URL;
 
-    private static final String INITIAL_REQUEST_PARAMETERS = ".parameters";
+    private static final String INITIAL_REQUEST_CONTEXT_PATH = INITIAL_REQUEST_PREFIX + CONTEXT_PATH;
 
-    private static final String INITIAL_REQUEST_HEADERS = ".headers";
+    private static final String LEGACY_INITIAL_REQUEST_CONTEXT_PATH =
+        INITIAL_REQUEST_PREFIX + XWIKI + DOT + CONTEXT_PATH;
 
-    private static final String INITIAL_REQUEST_COOKIES = ".cookies";
+    private static final String INITIAL_REQUEST_PARAMETERS = INITIAL_REQUEST_PREFIX + PARAMETERS;
 
-    private static final String INITIAL_REQUEST_REMOTE_ADDR = ".remoteAddress";
+    private static final String LEGACY_INITIAL_REQUEST_PARAMETERS = INITIAL_REQUEST_PREFIX + XWIKI + DOT + PARAMETERS;
+
+    private static final String INITIAL_REQUEST_HEADERS = INITIAL_REQUEST_PREFIX + HEADERS;
+
+    private static final String LEGACY_INITIAL_REQUEST_HEADERS = INITIAL_REQUEST_PREFIX + XWIKI + DOT + HEADERS;
+
+    private static final String INITIAL_REQUEST_COOKIES = INITIAL_REQUEST_PREFIX + COOKIES;
+
+    private static final String LEGACY_INITIAL_REQUEST_COOKIES = INITIAL_REQUEST_PREFIX + XWIKI + DOT + COOKIES;
+
+    private static final String INITIAL_REQUEST_REMOTE_ADDR = INITIAL_REQUEST_PREFIX + REMOTE_ADDR;
+
+    private static final String LEGACY_INITIAL_REQUEST_REMOTE_ADDR = INITIAL_REQUEST_PREFIX + XWIKI + DOT + REMOTE_ADDR;
 
     private static final String VALUE_SUFFIX = ".value";
 
-    private static final String DOT = ".";
-
-    private static final String XWIKI = "xwiki";
+    private static final String LEGACY_PROPERTY_WARNING = "Configuration key [{}] is deprecated and may be removed in"
+        + " a future release, please use [{}] instead.";
 
     @Inject
     @Named("xwikiproperties")
     private ConfigurationSource configuration;
+
+    @Inject
+    private Logger logger;
 
     @Override
     public boolean initializeMainWiki()
@@ -105,26 +135,25 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     }
 
     @Override
-    public URL getInitialRequestURL(WikiDescriptor descriptor)
+    public URL getInitialRequestURL()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI) + INITIAL_REQUEST_URL;
-        return configuration.getProperty(key, URL.class);
+        return getProperty(INITIAL_REQUEST_URL, LEGACY_INITIAL_REQUEST_URL, java.net.URL.class);
     }
 
     @Override
-    public String getInitialRequestContextPath(WikiDescriptor descriptor)
+    public String getInitialRequestContextPath()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI)
-            + INITIAL_REQUEST_CONTEXT_PATH;
-        return configuration.getProperty(key);
+        return getProperty(INITIAL_REQUEST_CONTEXT_PATH, LEGACY_INITIAL_REQUEST_CONTEXT_PATH, String.class);
     }
 
     @Override
-    public Map<String, List<String>> getInitialRequestParameters(WikiDescriptor descriptor)
+    public Map<String, List<String>> getInitialRequestParameters()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI)
-            + INITIAL_REQUEST_PARAMETERS;
-        List<String> parameterNames = configuration.getProperty(key, new ArrayList<>(0));
+        List<String> parameterNames = getProperty(INITIAL_REQUEST_PARAMETERS, LEGACY_INITIAL_REQUEST_PARAMETERS,
+            new ArrayList<>(0));
+
+        String key = (StringUtils.isNotBlank(configuration.getProperty(LEGACY_INITIAL_REQUEST_PARAMETERS)))
+            ? LEGACY_INITIAL_REQUEST_PARAMETERS : INITIAL_REQUEST_PARAMETERS;
 
         Map<String, List<String>> parameters = new HashMap<>();
         for (String parameterName : parameterNames) {
@@ -140,11 +169,13 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     }
 
     @Override
-    public Map<String, List<String>> getInitialRequestHeaders(WikiDescriptor descriptor)
+    public Map<String, List<String>> getInitialRequestHeaders()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI)
-            + INITIAL_REQUEST_HEADERS;
-        List<String> headerNames = configuration.getProperty(key, new ArrayList<>(0));
+        List<String> headerNames = getProperty(INITIAL_REQUEST_HEADERS, LEGACY_INITIAL_REQUEST_HEADERS,
+            new ArrayList<>(0));
+
+        String key = (StringUtils.isNotBlank(configuration.getProperty(LEGACY_INITIAL_REQUEST_HEADERS)))
+            ? LEGACY_INITIAL_REQUEST_HEADERS : INITIAL_REQUEST_HEADERS;
 
         Map<String, List<String>> headers = new HashMap<>();
         for (String headerName : headerNames) {
@@ -160,22 +191,22 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     }
 
     @Override
-    public List<Cookie> getInitialRequestCookies(WikiDescriptor descriptor)
+    public List<Cookie> getInitialRequestCookies()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI)
-            + INITIAL_REQUEST_COOKIES;
-        List<String> cookieNames = configuration.getProperty(key, new ArrayList<>(0));
+        List<String> cookieNames = getProperty(INITIAL_REQUEST_COOKIES, LEGACY_INITIAL_REQUEST_COOKIES,
+            new ArrayList<>(0));
+
+        String key = (StringUtils.isNotBlank(configuration.getProperty(LEGACY_INITIAL_REQUEST_COOKIES)))
+            ? LEGACY_INITIAL_REQUEST_COOKIES : INITIAL_REQUEST_COOKIES;
 
         return cookieNames.stream().map(cookieName -> new Cookie(cookieName,
             configuration.getProperty(key + DOT + cookieName + VALUE_SUFFIX))).collect(Collectors.toList());
     }
 
     @Override
-    public String getInitialRequestRemoteAddr(WikiDescriptor descriptor)
+    public String getInitialRequestRemoteAddr()
     {
-        String key = INITIAL_REQUEST_PREFIX + ((descriptor != null) ? descriptor.getId() : XWIKI)
-            + INITIAL_REQUEST_REMOTE_ADDR;
-        return configuration.getProperty(key);
+        return getProperty(INITIAL_REQUEST_REMOTE_ADDR, LEGACY_INITIAL_REQUEST_REMOTE_ADDR, String.class);
     }
 
     @Override
@@ -183,5 +214,35 @@ public class DefaultWikiInitializerConfiguration implements WikiInitializerConfi
     {
         List<String> wikiIDs = configuration.getProperty(KEY_INITIALIZABLE_SUB_WIKIS, Collections.emptyList());
         return wikiIDs.stream().map(wikiID -> new WikiDescriptor(wikiID, wikiID)).collect(Collectors.toSet());
+    }
+
+    private <T> T getProperty(String key, String legacyKey, Class<T> valueClass)
+    {
+        T value = configuration.getProperty(key, valueClass);
+
+        if (value == null) {
+            value = configuration.getProperty(legacyKey, valueClass);
+
+            if (value != null) {
+                logger.warn(LEGACY_PROPERTY_WARNING, legacyKey, key);
+            }
+        }
+
+        return value;
+    }
+
+    private <T> T getProperty(String key, String legacyKey, T def)
+    {
+        T value = configuration.getProperty(key, def);
+
+        if (value == null) {
+            value = configuration.getProperty(legacyKey, def);
+
+            if (value != null) {
+                logger.warn(LEGACY_PROPERTY_WARNING, legacyKey, key);
+            }
+        }
+
+        return value;
     }
 }
