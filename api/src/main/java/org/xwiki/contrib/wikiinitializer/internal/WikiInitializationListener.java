@@ -24,6 +24,7 @@ import java.util.Collection;
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.slf4j.Logger;
@@ -62,13 +63,13 @@ public class WikiInitializationListener extends AbstractEventListener
     private Logger logger;
 
     @Inject
-    private WikiInitializerConfiguration configuration;
+    private Provider<WikiInitializerConfiguration> configurationProvider;
 
     @Inject
-    private WikiDescriptorManager wikiDescriptorManager;
+    private Provider<WikiDescriptorManager> wikiDescriptorManagerProvider;
 
     @Inject
-    private WikiInitializationManager wikiInitializationManager;
+    private Provider<WikiInitializationManager> wikiInitializationManagerProvider;
 
     /**
      * Create a new {@link WikiInitializationListener}.
@@ -81,6 +82,9 @@ public class WikiInitializationListener extends AbstractEventListener
     @Override
     public void onEvent(Event event, Object source, Object data)
     {
+        WikiInitializerConfiguration configuration = configurationProvider.get();
+        WikiInitializationManager wikiInitializationManager = wikiInitializationManagerProvider.get();
+
         if (event instanceof ApplicationStartedEvent && configuration.initializeMainWiki()) {
             try {
                 wikiInitializationManager.initialize(null);
@@ -90,7 +94,7 @@ public class WikiInitializationListener extends AbstractEventListener
         } else if (event instanceof ApplicationReadyEvent) {
             try {
                 Collection<WikiDescriptor> wikisToInitialize = (configuration.initializeAllSubWikis())
-                    ? wikiDescriptorManager.getAll()
+                    ? wikiDescriptorManagerProvider.get().getAll()
                     : configuration.getInitializableWikis();
 
                 for (WikiDescriptor descriptor : wikisToInitialize) {

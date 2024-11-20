@@ -70,13 +70,13 @@ public class DefaultWikiInitializationManager implements WikiInitializationManag
     private Logger logger;
 
     @Inject
-    private ServletContainerInitializer containerInitializer;
+    private Provider<ServletContainerInitializer> containerInitializerProvider;
 
     @Inject
-    private WikiInitializerConfiguration configuration;
+    private Provider<WikiInitializerConfiguration> configurationProvider;
 
     @Inject
-    private ObservationManager observationManager;
+    private Provider<ObservationManager> observationManagerProvider;
 
     @Inject
     private Provider<XWikiContext> contextProvider;
@@ -102,6 +102,8 @@ public class DefaultWikiInitializationManager implements WikiInitializationManag
     {
         ServletEnvironment servletEnvironment = (ServletEnvironment) environment;
         XWikiEngineContext engineContext = new XWikiServletContext(servletEnvironment.getServletContext());
+        WikiInitializerConfiguration configuration = configurationProvider.get();
+        ServletContainerInitializer containerInitializer = containerInitializerProvider.get();
         String action = configuration.startDistributionWizardOnInitialization() ? ACTION_DISTRIBUTION : ACTION_VIEW;
 
         XWikiServletRequestStub.Builder requestBuilder = new XWikiServletRequestStub.Builder();
@@ -132,7 +134,7 @@ public class DefaultWikiInitializationManager implements WikiInitializationManag
 
         if (configuration.startDistributionWizardOnInitialization()) {
             try {
-                observationManager.notify(new ActionExecutingEvent(ACTION_DISTRIBUTION),
+                observationManagerProvider.get().notify(new ActionExecutingEvent(ACTION_DISTRIBUTION),
                     xwiki.getDocument(xwiki.getDefaultPage(context), context), context);
             } catch (Exception e) {
                 logger.error("Failed to auto-start XWiki Distribution", e);
