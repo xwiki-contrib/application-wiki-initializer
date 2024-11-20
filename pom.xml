@@ -52,5 +52,6 @@
   </developers>
   <modules>
     <module>api</module>
+    <module>xip</module>
   </modules>
 </project>
